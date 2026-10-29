@@ -1,0 +1,61 @@
+// OpenCode 2.x: СИСТЕМНЫЙ конфиг, только безопасность.
+// Место: %ProgramData%\opencode\opencode.jsonc (имя файла там — opencode.jsonc).
+// Править нужно из PowerShell от имени администратора.
+//
+// Системный слой имеет наивысший приоритет: проектные файлы эти значения
+// не перекроют, а агент без повышения прав не сможет их переписать.
+// Провайдер и модели лежат в глобальном файле (~\.config\opencode\opencode.jsonc).
+// Правила permissions/policies держите ТОЛЬКО здесь, не дублируйте в других слоях.
+//
+// permissions: правила с запросом подтверждения. Побеждает ПОСЛЕДНЕЕ
+// подходящее правило, поэтому исключения стоят ниже запретов.
+// policies: жёсткие запреты без запроса.
+// Это не песочница: агент работает с правами вашей учётной записи.
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "permissions": [
+    // Командная строка: спрашивать, кроме безопасного просмотра.
+    { "action": "shell", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "git status *", "effect": "allow" },
+    { "action": "shell", "resource": "git diff *", "effect": "allow" },
+    { "action": "shell", "resource": "git log *", "effect": "allow" },
+
+    // Выход за пределы проекта: спрашивать. Для постоянных папок
+    // (например, с CAD-файлами) раскомментируйте и поправьте три строки ниже.
+    { "action": "external_directory", "resource": "*", "effect": "ask" },
+    // { "action": "external_directory", "resource": "~/CAD/*", "effect": "allow" },
+    // { "action": "read", "resource": "~/CAD/*", "effect": "allow" },
+    // { "action": "edit", "resource": "~/CAD/*", "effect": "deny" },
+
+    // Интернет: спрашивать (можно убрать, если мешает).
+    { "action": "webfetch", "resource": "*", "effect": "ask" },
+
+    // Секреты: чтение .env запрещено, примеры без значений разрешены.
+    { "action": "read", "resource": "*.env", "effect": "deny" },
+    { "action": "read", "resource": "*.env.*", "effect": "deny" },
+    { "action": "read", "resource": "*.env.example", "effect": "allow" }
+  ],
+
+  "policies": [
+    // .env и примеры (allow только снимает более широкий deny выше)
+    { "action": "tool.use", "resource": "read:*.env", "effect": "deny" },
+    { "action": "tool.use", "resource": "read:*.env.*", "effect": "deny" },
+    { "action": "tool.use", "resource": "read:*.env.example", "effect": "allow" },
+    { "action": "tool.use", "resource": "edit:*.env", "effect": "deny" },
+
+    // Ключи и учётные данные
+    { "action": "tool.use", "resource": "read:*.pem", "effect": "deny" },
+    { "action": "tool.use", "resource": "read:*.key", "effect": "deny" },
+    { "action": "tool.use", "resource": "read:*.pfx", "effect": "deny" },
+    { "action": "tool.use", "resource": "read:*/.ssh/*", "effect": "deny" },
+    { "action": "tool.use", "resource": "read:*/.aws/*", "effect": "deny" },
+    { "action": "tool.use", "resource": "read:*/.git-credentials", "effect": "deny" },
+    { "action": "tool.use", "resource": "read:*/.netrc", "effect": "deny" },
+
+    // Данные самого OpenCode: база с сохранёнными ключами, старый auth.json,
+    // служебный конфиг сервиса. Сверьте пути с `opencode debug paths`.
+    { "action": "tool.use", "resource": "read:*/.local/share/opencode/*", "effect": "deny" },
+    { "action": "tool.use", "resource": "read:*/.config/opencode/service.json", "effect": "deny" }
+  ]
+}
