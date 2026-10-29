@@ -1,0 +1,82 @@
+// OpenCode 2.x: ГЛОБАЛЬНЫЙ конфиг пользователя, провайдер RouterAI и модели.
+// Место: %USERPROFILE%\.config\opencode\opencode.jsonc (имя файла там — opencode.jsonc).
+// Правила безопасности (permissions, policies) лежат в системном файле
+// %ProgramData%\opencode\opencode.jsonc; здесь их не дублируйте.
+//
+// Ключ берётся из переменной окружения ROUTERAI_API_KEY (в файле не хранится).
+//
+// Цены в названиях: ₽ за 1M токенов, «вход/выход». Сняты 2026-10-26 из поля
+// pricing ответа https://routerai.ru/api/v1/models (значение × 1 000 000).
+// Цены меняются: при обновлении правьте названия и эту дату.
+//
+// Алиасы «~…-latest» сами переходят на новые версии модели. В скобках указана
+// версия на дату выше. Для воспроизводимости можно добавить закреплённые ID.
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "providers": {
+    "routerai": {
+      "name": "RouterAI",
+      "env": ["ROUTERAI_API_KEY"],
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "https://routerai.ru/api/v1"
+      },
+      "models": {
+
+        // ---------- Anthropic ----------
+        "~anthropic/claude-fable-latest": {
+          "name": "Claude Fable latest · 1204/6020 ₽",
+          "compatibility": { "cacheFormat": "anthropic" }
+        },
+        "~anthropic/claude-opus-latest": {
+          "name": "Claude Opus latest (5.5) · 419/2094 ₽",
+          "compatibility": { "cacheFormat": "anthropic" }
+        },
+        "~anthropic/claude-sonnet-latest": {
+          "name": "Claude Sonnet latest (5.5) · 209/1047 ₽",
+          "compatibility": { "cacheFormat": "anthropic" }
+        },
+        "~anthropic/claude-haiku-latest": {
+          "name": "Claude Haiku latest (5.5) · 10/52 ₽",
+          "compatibility": { "cacheFormat": "anthropic" }
+        },
+
+        // ---------- OpenAI ----------
+        "openai/gpt-6-astra": {
+          "name": "GPT-6 Astra · 1047/5235 ₽",
+        },
+        "~openai/gpt-latest": {
+          "name": "GPT latest (6.1 Sol) · 209/1047 ₽",
+        },
+        "~openai/gpt-mini-latest": {
+          "name": "GPT mini latest · 79/471 ₽",
+        },
+
+        // ---------- Google ----------
+        "~google/gemini-pro-latest": {
+          "name": "Gemini Pro latest (4 Argon) · 209/1047 ₽",
+        },
+        "~google/gemini-flash-latest": {
+          "name": "Gemini Flash latest · 79/393 ₽",
+        },
+
+        // ---------- Qwen ----------
+        "qwen/qwen3.8-max-0902": {
+          "name": "Qwen3.8 Max 0902 · 209/628 ₽",
+        },
+        "qwen/qwen3-coder-next": {
+          "name": "Qwen3 Coder Next · 13/84 ₽",
+        },
+
+        // ---------- DeepSeek ----------
+        "~deepseek/deepseek-v4-pro-latest": {
+          "name": "DeepSeek V4 Pro latest · 19/58 ₽",
+        },
+        "~deepseek/deepseek-v4-flash-latest": {
+          "name": "DeepSeek V4 Flash latest (4.1) · 12/17 ₽",
+        }
+      }
+    }
+  }
+}
