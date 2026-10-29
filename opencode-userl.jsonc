@@ -9,11 +9,6 @@
 // pricing ответа https://routerai.ru/api/v1/models (значение × 1 000 000).
 // Цены меняются: при обновлении правьте названия и эту дату.
 //
-// capabilities и limit заданы явно: для моделей вне каталога OpenCode иначе
-// подставляет умолчания (инструменты, текст и изображения, контекст 200 000).
-// limit.context взят из ответа API (context_length).
-// limit.output = 32000 — консервативный потолок запроса, а не лимит модели.
-//
 // Алиасы «~…-latest» сами переходят на новые версии модели. В скобках указана
 // версия на дату выше. Для воспроизводимости можно добавить закреплённые ID.
 {
@@ -30,92 +25,56 @@
       "models": {
 
         // ---------- Anthropic ----------
-        // compatibility.cacheFormat = "anthropic" включает кэширование запросов
-        // (cache_control) для Claude через OpenAI-совместимый шлюз; чтение из кэша
-        // у этих моделей в 10–40 раз дешевле обычного входа. Если запросы к Claude
-        // начнут падать с ошибкой про cache_control, удалите эти строки.
         "~anthropic/claude-fable-latest": {
-          // версия не подтверждена; вход изображений предполагается по семейству
           "name": "Claude Fable latest · 1204/6020 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image"], "output": ["text"] },
-          "limit": { "context": 1000000, "output": 32000 },
           "compatibility": { "cacheFormat": "anthropic" }
         },
         "~anthropic/claude-opus-latest": {
           "name": "Claude Opus latest (5.5) · 419/2094 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image"], "output": ["text"] },
-          "limit": { "context": 1000000, "output": 32000 },
           "compatibility": { "cacheFormat": "anthropic" }
         },
         "~anthropic/claude-sonnet-latest": {
           "name": "Claude Sonnet latest (5.5) · 209/1047 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image"], "output": ["text"] },
-          "limit": { "context": 1000000, "output": 32000 },
           "compatibility": { "cacheFormat": "anthropic" }
         },
         "~anthropic/claude-haiku-latest": {
           "name": "Claude Haiku latest (5.5) · 10/52 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image"], "output": ["text"] },
-          "limit": { "context": 1000000, "output": 32000 },
           "compatibility": { "cacheFormat": "anthropic" }
         },
 
         // ---------- OpenAI ----------
         "openai/gpt-6-astra": {
-          // вход изображений предполагается по семейству GPT-6, не проверено
           "name": "GPT-6 Astra · 1047/5235 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image"], "output": ["text"] },
-          "limit": { "context": 1050000, "output": 32000 }
         },
         "~openai/gpt-latest": {
           "name": "GPT latest (6.1 Sol) · 209/1047 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image"], "output": ["text"] },
-          "limit": { "context": 1050000, "output": 32000 }
         },
         "~openai/gpt-mini-latest": {
-          // поддержка изображений не проверена, оставлен только текст
           "name": "GPT mini latest · 79/471 ₽",
-          "capabilities": { "tools": true, "input": ["text"], "output": ["text"] },
-          "limit": { "context": 400000, "output": 32000 }
         },
 
         // ---------- Google ----------
         "~google/gemini-pro-latest": {
-          // аудио и видео модель умеет, но через этот API не включены
           "name": "Gemini Pro latest (4 Argon) · 209/1047 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image"], "output": ["text"] },
-          "limit": { "context": 1048576, "output": 32000 }
         },
         "~google/gemini-flash-latest": {
           "name": "Gemini Flash latest · 79/393 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image"], "output": ["text"] },
-          "limit": { "context": 1048576, "output": 32000 }
         },
 
         // ---------- Qwen ----------
         "qwen/qwen3.8-max-0902": {
-          // закреплённая версия, алиаса latest у Qwen нет
           "name": "Qwen3.8 Max 0902 · 209/628 ₽",
-          "capabilities": { "tools": true, "input": ["text"], "output": ["text"] },
-          "limit": { "context": 1000000, "output": 32000 }
         },
         "qwen/qwen3-coder-next": {
           "name": "Qwen3 Coder Next · 13/84 ₽",
-          "capabilities": { "tools": true, "input": ["text"], "output": ["text"] },
-          "limit": { "context": 262144, "output": 32000 }
         },
 
         // ---------- DeepSeek ----------
         "~deepseek/deepseek-v4-pro-latest": {
-          // только текст
           "name": "DeepSeek V4 Pro latest · 19/58 ₽",
-          "capabilities": { "tools": true, "input": ["text"], "output": ["text"] },
-          "limit": { "context": 1048576, "output": 32000 }
         },
         "~deepseek/deepseek-v4-flash-latest": {
           "name": "DeepSeek V4 Flash latest (4.1) · 12/17 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image"], "output": ["text"] },
-          "limit": { "context": 1048576, "output": 32000 }
         }
       }
     }
