@@ -31,13 +31,13 @@
     Do not touch %ProgramData%\opencode (no UAC prompt).
 
 .EXAMPLE
-    irm https://raw.githubusercontent.com/<USER>/<REPO>/<TAG>/install.ps1 | iex
+    irm https://raw.githubusercontent.com/ErrOzz/opencode_setup/refs/heads/main/install.ps1 | iex
 
 .EXAMPLE
-    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/<USER>/<REPO>/<TAG>/install.ps1))) -UpdateConfig
+    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/ErrOzz/opencode_setup/refs/heads/main/install.ps1))) -UpdateConfig
 #>
 param(
-    [string]$BaseUrl = 'https://raw.githubusercontent.com/ErrOzz/opencode_setup/latest',
+    [string]$BaseUrl = 'https://raw.githubusercontent.com/ErrOzz/opencode_setup/refs/heads/main',
     [switch]$UpdateConfig,
     [switch]$SkipSystemPolicy
 )
