@@ -22,7 +22,7 @@
 
 .PARAMETER BaseUrl
     Raw URL prefix of the repository folder that holds install.ps1,
-    system-opencode.jsonc and user-opencode.jsonc. Pin it to a tag or commit.
+    opencode-system.jsonc and opencode-user.jsonc. Pin it to a tag or commit.
 
 .PARAMETER UpdateConfig
     Overwrite the existing user config (with a backup).
@@ -126,13 +126,13 @@ try {
 
     if (-not (Test-Path -LiteralPath $userConfigPath)) {
         Write-Step 'User config not found. Creating it from the template...'
-        Get-RepoFile 'user-opencode.jsonc' $userConfigPath
+        Get-RepoFile 'opencode-user.jsonc' $userConfigPath
     }
     elseif ($UpdateConfig) {
         $backup = "$userConfigPath.$(Get-Date -Format 'yyyyMMdd-HHmmss').bak"
         Write-Step "Updating user config (backup: $backup)..."
         Copy-Item -LiteralPath $userConfigPath -Destination $backup -Force
-        Get-RepoFile 'user-opencode.jsonc' $userConfigPath
+        Get-RepoFile 'opencode-user.jsonc' $userConfigPath
     }
     else {
         Write-Info 'User config already exists - left untouched (use -UpdateConfig to replace it).'
@@ -143,7 +143,7 @@ try {
         Write-Info 'System policy step skipped (-SkipSystemPolicy).'
     }
     else {
-        $policyName = 'system-opencode.jsonc'
+        $policyName = 'opencode-system.jsonc'
         $policyDir  = Join-Path $env:ProgramData 'opencode'
         $policyDest = Join-Path $policyDir 'opencode.jsonc'
 
