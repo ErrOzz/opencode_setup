@@ -8,21 +8,21 @@
     - User config: %USERPROFILE%\.config\opencode\opencode.jsonc
       Created if missing. With -UpdateConfig it is overwritten (a timestamped
       .bak copy is kept).
-    - System policy: %ProgramData%\opencode\opencode.jsonc
+    - System policy: %ProgramData%\opencode\opencode.json
       The only step that needs admin rights. A UAC prompt appears ONLY when
       this file is missing/differs from the repository version, OR the local
       additions file below does not exist yet. The folder is locked down so
       ordinary users (and agents running as them) can read the policy but
       not change it.
-    - Local policy additions: %ProgramData%\opencode\opencode.json
+    - Local policy additions: %ProgramData%\opencode\opencode.jsonc
       Created once as an empty template; this script NEVER overwrites it
-      again. OpenCode merges it with opencode.jsonc automatically (same
-      folder), so you can hand-edit it (admin rights required) to add
-      machine-specific allowed paths etc. without them being wiped on the
-      next update. Prefer adding new keys there over overriding ones already
-      set in opencode.jsonc, since precedence on an actual conflict between
-      the two files is not documented upstream - verify with
-      `opencode debug config`.
+      again. OpenCode merges it with opencode.json automatically (same
+      folder) and loads it LAST, so a rule added here (hand-edited, admin
+      rights required) can override a broader rule from the base - e.g.
+      allow a specific machine-local path the base only asks about.
+      Adding the same rule to opencode.json instead would NOT override
+      anything, since that file loads first. Verify the effective result
+      anytime with `opencode debug config`.
     - API key: ROUTERAI_API_KEY is requested only if it is not set yet
       (checked in Process, User and Machine scopes).
 
@@ -215,18 +215,24 @@ try {
     else {
         $policyName = 'opencode-system.jsonc'
         $policyDir   = Join-Path $env:ProgramData 'opencode'
-        $policyDest  = Join-Path $policyDir 'opencode.jsonc'   # repo-managed base, always synced
-        $localPolicy = Join-Path $policyDir 'opencode.json'    # hand-maintained additions, never synced
+        $policyDest  = Join-Path $policyDir 'opencode.json'    # repo-managed base, always synced
+        $localPolicy = Join-Path $policyDir 'opencode.jsonc'   # hand-maintained additions, never synced
 
         # OpenCode merges opencode.json + opencode.jsonc when both are present in the
         # same config directory (non-conflicting keys from each are combined - see
-        # https://github.com/anomalyco/opencode/issues/32447). We rely on exactly that:
-        # opencode.jsonc stays fully repo-controlled and is overwritten every run;
-        # opencode.json is created once as an empty template and is then yours to edit
-        # by hand (e.g. extra allowed paths) - this script will never touch it again.
-        # Keep the two files' keys non-overlapping where possible, since precedence
-        # between them on a CONFLICT is not documented; check the merged result anytime
-        # with `opencode debug config`.
+        # https://github.com/anomalyco/opencode/issues/32447). `opencode debug config`
+        # shows opencode.json loaded BEFORE opencode.jsonc, and for list-type fields
+        # such as "permissions"/"policies" the LAST matching rule in the combined list
+        # wins - so a broad rule in the file loaded first can still be overridden by a
+        # more specific one in the file loaded last, but not the other way around.
+        # That is why the roles below look swapped at first glance:
+        #   opencode.json  (loaded first)  -> repo-managed base, overwritten every run.
+        #   opencode.jsonc (loaded last)   -> your local additions/exceptions, created
+        #                                      once and never touched by this script
+        #                                      again, so they can actually win over the
+        #                                      base's catch-all rules.
+        # This load order isn't documented upstream and could change in a future
+        # OpenCode release - re-check with `opencode debug config` after an update.
 
         # Compare the repository version with what's installed, and check whether the
         # local-additions file still needs to be created (no admin rights needed for this).
@@ -256,25 +262,26 @@ try {
                 $fetch = "Invoke-WebRequest -UseBasicParsing -Uri '$BaseUrl/$policyName' -OutFile '$policyDest'"
             }
 
-            # Only written if opencode.json does not already exist - never overwritten afterwards.
+            # Only written if opencode.jsonc does not already exist - never overwritten afterwards.
             $localTemplate = @'
 {
-  // Local additions to the managed OpenCode policy (this machine only).
+  // Local additions/exceptions to the managed OpenCode policy (this machine
+  // only). NEVER touched by install.ps1 after it is first created - edit it
+  // by hand (admin rights required, same as this whole folder).
   //
-  // This file is NEVER touched by install.ps1 after it is first created - edit
-  // it by hand (admin rights required, same as this whole folder) to add
-  // extra allowed paths etc. OpenCode merges it with opencode.jsonc in this
-  // same folder automatically.
+  // OpenCode merges this file with opencode.json in this same folder, and
+  // loads opencode.jsonc (this file) LAST. For "permissions"/"policies" the
+  // LAST matching rule in the combined list wins, so a rule placed here can
+  // override a broader one from the base (e.g. turn its catch-all "ask"
+  // into "allow" for one specific path) - adding a rule to the base file
+  // instead would NOT be able to do that, since the base loads first.
+  // Verify the effective result anytime with: opencode debug config
   //
-  // Prefer ADDING keys here rather than overriding ones already set in
-  // opencode.jsonc - precedence on a genuine conflict between opencode.json
-  // and opencode.jsonc is not documented upstream. Check the merged result
-  // with: opencode debug config
-  //
-  // Example:
-  // "permission": {
-  //   "read": { "D:/SharedCAD/**": "allow" }
-  // }
+  // Example - allow a shared folder without being asked every time:
+  // "permissions": [
+  //   { "action": "external_directory", "resource": "D:/SharedCAD/*", "effect": "allow" },
+  //   { "action": "read", "resource": "D:/SharedCAD/*", "effect": "allow" }
+  // ]
 }
 '@
             $encodedTemplate = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($localTemplate))

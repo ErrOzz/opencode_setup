@@ -1,50 +1,55 @@
-// OpenCode 2.x: СИСТЕМНЫЙ конфиг, только безопасность.
-// Место: %ProgramData%\opencode\opencode.jsonc (имя файла там — opencode.jsonc).
-// Править нужно из PowerShell от имени администратора.
+// OpenCode 2.x: SYSTEM config, security rules only.
+// Deployed to: %ProgramData%\opencode\opencode.json (installed by
+// install.ps1, synced from this repo file on every run - DO NOT hand-edit
+// the deployed copy, your changes will be overwritten on the next update).
 //
-// Системный слой имеет наивысший приоритет: проектные файлы эти значения
-// не перекроют, а агент без повышения прав не сможет их переписать.
-// Провайдер и модели лежат в глобальном файле (~\.config\opencode\opencode.jsonc).
-// Правила permissions/policies держите ТОЛЬКО здесь, не дублируйте в других слоях.
+// For machine-specific additions or exceptions (e.g. extra allowed paths),
+// edit %ProgramData%\opencode\opencode.jsonc instead - that file is created
+// once and the installer never touches it again. See the comments in that
+// file (and in install.ps1) for why it has to be the .jsonc one, not this
+// one, if you want an exception to actually override a rule from here.
 //
-// permissions: правила с запросом подтверждения. Побеждает ПОСЛЕДНЕЕ
-// подходящее правило, поэтому исключения стоят ниже запретов.
-// policies: жёсткие запреты без запроса.
-// Это не песочница: агент работает с правами вашей учётной записи.
+// This managed layer has the highest priority: project-level config cannot
+// override it, and the agent cannot rewrite it without elevated rights.
+// Provider and model settings live in the global config
+// (~\.config\opencode\opencode.jsonc) - keep permissions/policies here
+// (and in the local additions file), do not duplicate them elsewhere.
+//
+// permissions: rules that ask for confirmation. The LAST matching rule in
+// the final merged list wins, so narrower exceptions must load after the
+// broader rule they narrow.
+// policies: hard denials, no prompt.
+// This is not a sandbox: the agent runs with your own account's rights.
 {
   "$schema": "https://opencode.ai/config.json",
 
   "permissions": [
-    // Командная строка: спрашивать, кроме безопасного просмотра.
+    // Shell commands: ask, except safe read-only git inspection.
     { "action": "shell", "resource": "*", "effect": "ask" },
     { "action": "shell", "resource": "git status *", "effect": "allow" },
     { "action": "shell", "resource": "git diff *", "effect": "allow" },
     { "action": "shell", "resource": "git log *", "effect": "allow" },
 
-    // Выход за пределы проекта: спрашивать. Для постоянных папок
-    // (например, с CAD-файлами) раскомментируйте и поправьте три строки ниже.
+    // Leaving the project folder: ask.
     { "action": "external_directory", "resource": "*", "effect": "ask" },
-    // { "action": "external_directory", "resource": "~/CAD/*", "effect": "allow" },
-    // { "action": "read", "resource": "~/CAD/*", "effect": "allow" },
-    // { "action": "edit", "resource": "~/CAD/*", "effect": "deny" },
 
-    // Интернет: спрашивать (можно убрать, если мешает).
+    // Network access: ask (remove this line if it gets in the way).
     { "action": "webfetch", "resource": "*", "effect": "ask" },
 
-    // Секреты: чтение .env запрещено, примеры без значений разрешены.
+    // Secrets: reading .env is denied, example files without values are fine.
     { "action": "read", "resource": "*.env", "effect": "deny" },
     { "action": "read", "resource": "*.env.*", "effect": "deny" },
     { "action": "read", "resource": "*.env.example", "effect": "allow" }
   ],
 
   "policies": [
-    // .env и примеры (allow только снимает более широкий deny выше)
+    // .env and examples (the allow only narrows the broader deny above)
     { "action": "tool.use", "resource": "read:*.env", "effect": "deny" },
     { "action": "tool.use", "resource": "read:*.env.*", "effect": "deny" },
     { "action": "tool.use", "resource": "read:*.env.example", "effect": "allow" },
     { "action": "tool.use", "resource": "edit:*.env", "effect": "deny" },
 
-    // Ключи и учётные данные
+    // Keys and credentials
     { "action": "tool.use", "resource": "read:*.pem", "effect": "deny" },
     { "action": "tool.use", "resource": "read:*.key", "effect": "deny" },
     { "action": "tool.use", "resource": "read:*.pfx", "effect": "deny" },
@@ -53,8 +58,8 @@
     { "action": "tool.use", "resource": "read:*/.git-credentials", "effect": "deny" },
     { "action": "tool.use", "resource": "read:*/.netrc", "effect": "deny" },
 
-    // Данные самого OpenCode: база с сохранёнными ключами, старый auth.json,
-    // служебный конфиг сервиса. Сверьте пути с `opencode debug paths`.
+    // OpenCode's own data: stored keys, legacy auth.json, service config.
+    // Cross-check these paths with `opencode debug paths`.
     { "action": "tool.use", "resource": "read:*/.local/share/opencode/*", "effect": "deny" },
     { "action": "tool.use", "resource": "read:*/.config/opencode/service.json", "effect": "deny" }
   ]
