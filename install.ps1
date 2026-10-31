@@ -10,9 +10,19 @@
       .bak copy is kept).
     - System policy: %ProgramData%\opencode\opencode.jsonc
       The only step that needs admin rights. A UAC prompt appears ONLY when
-      the file is missing or differs from the repository version. The folder
-      is locked down so ordinary users (and agents running as them) can read
-      the policy but not change it.
+      this file is missing/differs from the repository version, OR the local
+      additions file below does not exist yet. The folder is locked down so
+      ordinary users (and agents running as them) can read the policy but
+      not change it.
+    - Local policy additions: %ProgramData%\opencode\opencode.json
+      Created once as an empty template; this script NEVER overwrites it
+      again. OpenCode merges it with opencode.jsonc automatically (same
+      folder), so you can hand-edit it (admin rights required) to add
+      machine-specific allowed paths etc. without them being wiped on the
+      next update. Prefer adding new keys there over overriding ones already
+      set in opencode.jsonc, since precedence on an actual conflict between
+      the two files is not documented upstream - verify with
+      `opencode debug config`.
     - API key: ROUTERAI_API_KEY is requested only if it is not set yet
       (checked in Process, User and Machine scopes).
 
@@ -79,6 +89,66 @@ function Test-IsAdmin {
         [Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+# Synchronous, single-threaded streaming download with a live status line, so
+# a big file (the CLI zip) doesn't look like the script has frozen. Falls
+# back to a silent Invoke-WebRequest if HttpClient is unavailable for any
+# reason - the download still happens, it's just quiet again.
+function Get-FileWithProgress {
+    param(
+        [Parameter(Mandatory)][string]$Uri,
+        [Parameter(Mandatory)][string]$OutFile,
+        [string]$Label = 'Downloading'
+    )
+    try {
+        Add-Type -AssemblyName System.Net.Http -ErrorAction Stop
+        $client = [System.Net.Http.HttpClient]::new()
+    }
+    catch {
+        Write-Warn 'Falling back to a plain (quiet) download.'
+        Invoke-WebRequest -UseBasicParsing -Uri $Uri -OutFile $OutFile
+        return
+    }
+
+    try {
+        $client.Timeout = [TimeSpan]::FromMinutes(10)
+        $response = $client.GetAsync($Uri, [Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
+        $response.EnsureSuccessStatusCode() | Out-Null
+        $total = $response.Content.Headers.ContentLength   # $null if the server doesn't send it
+
+        $inStream  = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
+        $outStream = [IO.File]::Open($OutFile, [IO.FileMode]::Create)
+        try {
+            $buffer    = New-Object byte[] 81920
+            $readTotal = 0L
+            $sw        = [Diagnostics.Stopwatch]::StartNew()
+            while (($read = $inStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                $outStream.Write($buffer, 0, $read)
+                $readTotal += $read
+                if ($sw.ElapsedMilliseconds -ge 200) {
+                    $mb = [math]::Round($readTotal / 1MB, 1)
+                    if ($total) {
+                        $pct     = [int](($readTotal * 100) / $total)
+                        $totalMb = [math]::Round($total / 1MB, 1)
+                        Write-Host -NoNewline ("`r    {0}: {1,3}% ({2} / {3} MB)   " -f $Label, $pct, $mb, $totalMb)
+                    }
+                    else {
+                        Write-Host -NoNewline ("`r    {0}: {1} MB   " -f $Label, $mb)
+                    }
+                    $sw.Restart()
+                }
+            }
+            Write-Host ''
+        }
+        finally {
+            $outStream.Dispose()
+            $inStream.Dispose()
+        }
+    }
+    finally {
+        $client.Dispose()
+    }
+}
+
 # ---------------------------------------------------------------- main
 try {
     Write-Host '=== OpenCode CLI install / update ===' -ForegroundColor Cyan
@@ -98,7 +168,7 @@ try {
     $zipPath = Join-Path $env:TEMP "opencode-latest-$PID.zip"
     try {
         Write-Step 'Downloading the latest OpenCode CLI...'
-        Invoke-WebRequest -UseBasicParsing -OutFile $zipPath `
+        Get-FileWithProgress -Label 'CLI' -OutFile $zipPath `
             -Uri 'https://opencode.ai/update/api/latest/cli/opencode/opencode-windows-x64.zip'
         Write-Step "Extracting to $binDir ..."
         Expand-Archive -LiteralPath $zipPath -DestinationPath $binDir -Force
@@ -144,26 +214,39 @@ try {
     }
     else {
         $policyName = 'opencode-system.jsonc'
-        $policyDir  = Join-Path $env:ProgramData 'opencode'
-        $policyDest = Join-Path $policyDir 'opencode.jsonc'
+        $policyDir   = Join-Path $env:ProgramData 'opencode'
+        $policyDest  = Join-Path $policyDir 'opencode.jsonc'   # repo-managed base, always synced
+        $localPolicy = Join-Path $policyDir 'opencode.json'    # hand-maintained additions, never synced
 
-        # Compare the repository version with the installed one (no admin needed)
+        # OpenCode merges opencode.json + opencode.jsonc when both are present in the
+        # same config directory (non-conflicting keys from each are combined - see
+        # https://github.com/anomalyco/opencode/issues/32447). We rely on exactly that:
+        # opencode.jsonc stays fully repo-controlled and is overwritten every run;
+        # opencode.json is created once as an empty template and is then yours to edit
+        # by hand (e.g. extra allowed paths) - this script will never touch it again.
+        # Keep the two files' keys non-overlapping where possible, since precedence
+        # between them on a CONFLICT is not documented; check the merged result anytime
+        # with `opencode debug config`.
+
+        # Compare the repository version with what's installed, and check whether the
+        # local-additions file still needs to be created (no admin rights needed for this).
         $tmpPolicy = Join-Path $env:TEMP "opencode-policy-$PID.jsonc"
         try {
             Get-RepoFile $policyName $tmpPolicy
-            $upToDate = (Test-Path -LiteralPath $policyDest) -and
-                        ((Get-FileHash -LiteralPath $tmpPolicy).Hash -eq
-                         (Get-FileHash -LiteralPath $policyDest).Hash)
+            $baseUpToDate = (Test-Path -LiteralPath $policyDest) -and
+                            ((Get-FileHash -LiteralPath $tmpPolicy).Hash -eq
+                             (Get-FileHash -LiteralPath $policyDest).Hash)
         }
         finally {
             Remove-Item -LiteralPath $tmpPolicy -Force -ErrorAction SilentlyContinue
         }
+        $localMissing = -not (Test-Path -LiteralPath $localPolicy)
 
-        if ($upToDate) {
+        if ($baseUpToDate -and -not $localMissing) {
             Write-Info 'System policy is already up to date.'
         }
         else {
-            # The admin part fetches the file itself, so nothing user-writable
+            # The admin part fetches/writes the files itself, so nothing user-writable
             # sits between the download and the protected location.
             $local = Get-LocalRepoFile $policyName
             if ($local) {
@@ -173,6 +256,29 @@ try {
                 $fetch = "Invoke-WebRequest -UseBasicParsing -Uri '$BaseUrl/$policyName' -OutFile '$policyDest'"
             }
 
+            # Only written if opencode.json does not already exist - never overwritten afterwards.
+            $localTemplate = @'
+{
+  // Local additions to the managed OpenCode policy (this machine only).
+  //
+  // This file is NEVER touched by install.ps1 after it is first created - edit
+  // it by hand (admin rights required, same as this whole folder) to add
+  // extra allowed paths etc. OpenCode merges it with opencode.jsonc in this
+  // same folder automatically.
+  //
+  // Prefer ADDING keys here rather than overriding ones already set in
+  // opencode.jsonc - precedence on a genuine conflict between opencode.json
+  // and opencode.jsonc is not documented upstream. Check the merged result
+  // with: opencode debug config
+  //
+  // Example:
+  // "permission": {
+  //   "read": { "D:/SharedCAD/**": "allow" }
+  // }
+}
+'@
+            $encodedTemplate = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($localTemplate))
+
             $adminCmd = @"
 `$ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
@@ -181,6 +287,9 @@ New-Item -ItemType Directory -Force -Path '$policyDir' | Out-Null
 icacls '$policyDir' /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
 if (`$LASTEXITCODE -ne 0) { throw 'icacls failed' }
 $fetch
+if (-not (Test-Path -LiteralPath '$localPolicy')) {
+    [IO.File]::WriteAllText('$localPolicy', [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$encodedTemplate')))
+}
 "@
 
             Write-Step 'Installing the system policy (admin rights required)...'
@@ -200,6 +309,9 @@ $fetch
                 catch [System.ComponentModel.Win32Exception] {
                     throw 'UAC prompt was cancelled - the system policy was NOT installed.'
                 }
+            }
+            if ($localMissing) {
+                Write-Info "Created $localPolicy - edit it by hand (as admin) to add local path overrides."
             }
             Write-Info "System policy installed: $policyDest"
         }
