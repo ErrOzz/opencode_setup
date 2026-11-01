@@ -140,7 +140,7 @@
       "system": "You are a concise, direct assistant for open-ended discussion and brainstorming. No project files or tools are available. Reply in the user's language.",
       "permissions": [
         // Deny every action first; the last matching rule wins, so put exceptions below.
-        { "action": "*", "resource": "*", "effect": "deny" }
+        { "action": "*", "resource": "*", "effect": "deny" },
         // Example exception (web search in chat):
         { "action": "websearch", "resource": "*", "effect": "allow" }
       ]
