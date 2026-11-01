@@ -13,6 +13,8 @@
 // OpenCode would otherwise apply defaults (tools, text and image input, 200,000 context).
 // limit.context comes from the API response (context_length).
 // limit.output = 32000 is a conservative per-request cap, not a model limit.
+// pdf is listed in input for every model on purpose: RouterAI converts pdf to text
+// with another model when the target model has no native pdf support (checked).
 //
 // "~...-latest" aliases move to new model versions automatically. The version in
 // parentheses is the one current on the date above. For reproducibility you can
@@ -74,7 +76,7 @@
           "limit": { "context": 1050000, "output": 32000 }
         },
         "~openai/gpt-mini-latest": {
-          // image and pdf input are not verified
+          // image input is not verified
           "name": "GPT mini latest · 79/471 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 400000, "output": 32000 }
@@ -108,7 +110,7 @@
 
         // ---------- DeepSeek ----------
         "~deepseek/deepseek-v4-pro-latest": {
-          // no image input; pdf input is not verified
+          // no image input
           "name": "DeepSeek V4 Pro latest · 19/58 ₽",
           "capabilities": { "tools": true, "input": ["text", "pdf"], "output": ["text"] },
           "limit": { "context": 1048576, "output": 32000 }
