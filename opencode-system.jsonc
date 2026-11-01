@@ -34,7 +34,7 @@
     { "action": "external_directory", "resource": "*", "effect": "ask" },
 
     // Network access: ask (remove this line if it gets in the way).
-    { "action": "webfetch", "resource": "*", "effect": "ask" },
+    // { "action": "webfetch", "resource": "*", "effect": "ask" },
 
     // Secrets: reading .env is denied, example files without values are fine.
     { "action": "read", "resource": "*.env", "effect": "deny" },
