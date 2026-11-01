@@ -1,21 +1,22 @@
-// OpenCode 2.x: ГЛОБАЛЬНЫЙ конфиг пользователя, провайдер RouterAI и модели.
-// Место: %USERPROFILE%\.config\opencode\opencode.jsonc (имя файла там — opencode.jsonc).
-// Правила безопасности (permissions, policies) лежат в системном файле
-// %ProgramData%\opencode\opencode.jsonc; здесь их не дублируйте.
+// OpenCode 2.x: GLOBAL user config with the RouterAI provider, models and custom agents.
+// Location: %USERPROFILE%\.config\opencode\opencode.jsonc (the file is named opencode.jsonc there).
+// Security rules (permissions, policies) live in the system-wide file
+// %ProgramData%\opencode\opencode.jsonc; do not duplicate them here.
 //
-// Ключ берётся из переменной окружения ROUTERAI_API_KEY (в файле не хранится).
+// The API key is read from the ROUTERAI_API_KEY environment variable (it is not stored in this file).
 //
-// Цены в названиях: ₽ за 1M токенов, «вход/выход». Сняты 2026-10-26 из поля
-// pricing ответа https://routerai.ru/api/v1/models (значение × 1 000 000).
-// Цены меняются: при обновлении правьте названия и эту дату.
+// Prices in model names: RUB per 1M tokens, "input/output". Taken on 2026-10-26 from the
+// pricing field of the https://routerai.ru/api/v1/models response (value x 1,000,000).
+// Prices change: when updating, edit the names and this date.
 //
-// capabilities и limit заданы явно: для моделей вне каталога OpenCode иначе
-// подставляет умолчания (инструменты, текст и изображения, контекст 200 000).
-// limit.context взят из ответа API (context_length).
-// limit.output = 32000 — консервативный потолок запроса, а не лимит модели.
+// capabilities and limit are set explicitly: for models outside the OpenCode catalog
+// OpenCode would otherwise apply defaults (tools, text and image input, 200,000 context).
+// limit.context comes from the API response (context_length).
+// limit.output = 32000 is a conservative per-request cap, not a model limit.
 //
-// Алиасы «~…-latest» сами переходят на новые версии модели. В скобках указана
-// версия на дату выше. Для воспроизводимости можно добавить закреплённые ID.
+// "~...-latest" aliases move to new model versions automatically. The version in
+// parentheses is the one current on the date above. For reproducibility you can
+// add pinned model IDs.
 {
   "$schema": "https://opencode.ai/config.json",
 
@@ -30,12 +31,12 @@
       "models": {
 
         // ---------- Anthropic ----------
-        // compatibility.cacheFormat = "anthropic" включает кэширование запросов
-        // (cache_control) для Claude через OpenAI-совместимый шлюз; чтение из кэша
-        // у этих моделей в 10–40 раз дешевле обычного входа. Если запросы к Claude
-        // начнут падать с ошибкой про cache_control, удалите эти строки.
+        // compatibility.cacheFormat = "anthropic" enables request caching
+        // (cache_control) for Claude through the OpenAI-compatible gateway; reads from
+        // the cache are 10-40x cheaper than regular input. If requests to Claude start
+        // failing with a cache_control error, remove these lines.
         "~anthropic/claude-fable-latest": {
-          // версия не подтверждена; вход изображений предполагается по семейству
+          // version not confirmed; image input is assumed from the model family
           "name": "Claude Fable latest · 1204/6020 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1000000, "output": 32000 },
@@ -62,7 +63,7 @@
 
         // ---------- OpenAI ----------
         "openai/gpt-6-astra": {
-          // вход изображений предполагается по семейству GPT-6, не проверено
+          // image input is assumed from the GPT-6 family, not verified
           "name": "GPT-6 Astra · 1047/5235 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1050000, "output": 32000 }
@@ -73,7 +74,7 @@
           "limit": { "context": 1050000, "output": 32000 }
         },
         "~openai/gpt-mini-latest": {
-          // поддержка изображений не проверена, оставлен только текст
+          // image and pdf input are not verified
           "name": "GPT mini latest · 79/471 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 400000, "output": 32000 }
@@ -81,7 +82,7 @@
 
         // ---------- Google ----------
         "~google/gemini-pro-latest": {
-          // аудио и видео модель умеет, но через этот API не включены
+          // the model also handles audio and video, but they are not enabled via this API
           "name": "Gemini Pro latest (4 Argon) · 209/1047 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1048576, "output": 32000 }
@@ -94,7 +95,7 @@
 
         // ---------- Qwen ----------
         "qwen/qwen3.8-max-0902": {
-          // закреплённая версия, алиаса latest у Qwen нет
+          // pinned version, Qwen has no "latest" alias
           "name": "Qwen3.8 Max 0902 · 209/628 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1000000, "output": 32000 }
@@ -107,7 +108,7 @@
 
         // ---------- DeepSeek ----------
         "~deepseek/deepseek-v4-pro-latest": {
-          // только текст
+          // no image input; pdf input is not verified
           "name": "DeepSeek V4 Pro latest · 19/58 ₽",
           "capabilities": { "tools": true, "input": ["text", "pdf"], "output": ["text"] },
           "limit": { "context": 1048576, "output": 32000 }
@@ -118,6 +119,29 @@
           "limit": { "context": 1048576, "output": 32000 }
         }
       }
+    }
+  },
+
+  "agents": {
+    // Lightweight chat agent: no tools and a minimal system prompt, for discussions
+    // outside a project or while the project idea is still forming.
+    // Switch to it with Tab or /agents. Do not set it as default_agent, otherwise
+    // it would also become the default inside projects.
+    // For the smallest context, start OpenCode from an empty folder: project
+    // instructions (AGENTS.md) and skills are still added on top of "system".
+    "chat": {
+      "description": "Plain chat without project tools",
+      "mode": "primary",
+      "color": "info",
+      // Optional: pin a cheaper model for chat (provider ID / model key; adjust if needed).
+      // "model": "routerai/~anthropic/claude-haiku-latest",
+      "system": "You are a concise, direct assistant for open-ended discussion and brainstorming. No project files or tools are available. Reply in the user's language.",
+      "permissions": [
+        // Deny every action first; the last matching rule wins, so put exceptions below.
+        { "action": "*", "resource": "*", "effect": "deny" }
+        // Example exception (web search in chat):
+        { "action": "websearch", "resource": "*", "effect": "allow" }
+      ]
     }
   }
 }
