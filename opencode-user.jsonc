@@ -5,7 +5,7 @@
 //
 // The API key is read from the ROUTERAI_API_KEY environment variable (it is not stored in this file).
 //
-// Prices in model names: RUB per 1M tokens, "input/output". Taken on 2026-10-26 from the
+// Prices in model names: RUB per 1M tokens, "input/output". Taken on 2026-11-03 from the
 // pricing field of the https://routerai.ru/api/v1/models response (value x 1,000,000).
 // Prices change: when updating, edit the names and this date.
 //
@@ -39,13 +39,13 @@
         // failing with a cache_control error, remove these lines.
         "~anthropic/claude-fable-latest": {
           // version not confirmed; image input is assumed from the model family
-          "name": "Claude Fable latest · 1204/6020 ₽",
+          "name": "Claude Fable latest · 1204/6022 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1000000, "output": 32000 },
           "compatibility": { "cacheFormat": "anthropic" }
         },
         "~anthropic/claude-opus-latest": {
-          "name": "Claude Opus latest (5.5) · 419/2094 ₽",
+          "name": "Claude Opus latest (5.5) · 419/2095 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1000000, "output": 32000 },
           "compatibility": { "cacheFormat": "anthropic" }
@@ -66,7 +66,7 @@
         // ---------- OpenAI ----------
         "openai/gpt-6-astra": {
           // image input is assumed from the GPT-6 family, not verified
-          "name": "GPT-6 Astra · 1047/5235 ₽",
+          "name": "GPT-6 Astra · 1047/5236 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1050000, "output": 32000 }
         },
@@ -81,7 +81,18 @@
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 400000, "output": 32000 }
         },
-
+        "openai/gpt-6.1-terra": {
+          // image input is assumed from the GPT-6 family, not verified
+          "name": "GPT-6.1 Terra · 105/524 ₽",
+          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
+          "limit": { "context": 1050000, "output": 32000 }
+        },
+        "openai/gpt-6.1-terra-pro": {
+          // same per-token price as Terra; Pro likely spends more tokens per request (unverified)
+          "name": "GPT-6.1 Terra Pro · 105/524 ₽",
+          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
+          "limit": { "context": 1050000, "output": 32000 }
+        },
         // ---------- Google ----------
         "~google/gemini-pro-latest": {
           // the model also handles audio and video, but they are not enabled via this API
@@ -111,12 +122,12 @@
         // ---------- DeepSeek ----------
         "~deepseek/deepseek-v4-pro-latest": {
           // no image input
-          "name": "DeepSeek V4 Pro latest · 19/58 ₽",
+          "name": "DeepSeek V4 Pro latest · 99/176 ₽",
           "capabilities": { "tools": true, "input": ["text", "pdf"], "output": ["text"] },
           "limit": { "context": 1048576, "output": 32000 }
         },
         "~deepseek/deepseek-v4-flash-latest": {
-          "name": "DeepSeek V4 Flash latest (4.1) · 12/17 ₽",
+          "name": "DeepSeek V4 Flash latest · 6/22 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1048576, "output": 32000 }
         }
