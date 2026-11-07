@@ -93,6 +93,16 @@
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1050000, "output": 32000 }
         },
+                "openai/gpt-6-luna": {
+          // image input is assumed from the GPT-6 family, not verified
+          // the "pro" variant sends reasoning.mode = "pro": same per-token price, more tokens per request
+          "name": "GPT-6 Luna · 11/53 ₽",
+          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
+          "limit": { "context": 1050000, "output": 32000 },
+          "variants": [
+            { "id": "pro", "body": { "reasoning": { "mode": "pro" } } }
+          ]
+        },
         // ---------- Google ----------
         "~google/gemini-pro-latest": {
           // the model also handles audio and video, but they are not enabled via this API
