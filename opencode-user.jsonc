@@ -85,19 +85,19 @@
           // image input is assumed from the GPT-6 family, not verified
           "name": "GPT-6.1 Terra · 105/524 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1050000, "output": 32000 }
+          "limit": { "context": 1050000, "output": 32000 },
+          "variants": [
+            { "id": "pro", "body": { "reasoning": { "mode": "pro" } } }
+          ]
         },
-        "openai/gpt-6.1-terra-pro": {
-          // same per-token price as Terra; Pro likely spends more tokens per request (unverified)
-          "name": "GPT-6.1 Terra Pro · 105/524 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1050000, "output": 32000 }
-        },
-                "openai/gpt-6-luna": {
+        "openai/gpt-6-luna": {
           // image input is assumed from the GPT-6 family, not verified
           // the "pro" variant sends reasoning.mode = "pro": same per-token price, more tokens per request
           "name": "GPT-6 Luna · 11/53 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
+          "capabilities": {
+            "tools": true, "input": ["text", "image", "pdf"], "output": ["text"],
+            "reasoning": { "supported": true, "effort": ["low", "medium", "high"] }
+          },
           "limit": { "context": 1050000, "output": 32000 },
           "variants": [
             { "id": "pro", "body": { "reasoning": { "mode": "pro" } } }
