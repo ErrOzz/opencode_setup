@@ -183,11 +183,18 @@ try {
         Write-Info 'Could not check the latest version online - downloading to be safe.'
     }
 
+    # `opencode --version` prints extra text around the number (observed:
+    # "opencode v2.2.6"), so pull out the bare x.y.z instead of assuming a
+    # fixed prefix/format on either side.
+    $versionPattern = '\d+(\.\d+)+'
+    $installedVersionNum = if ($installedVersion -match $versionPattern) { $Matches[0] } else { $null }
+    $latestVersionNum    = if ($latestVersion    -match $versionPattern) { $Matches[0] } else { $null }
+
     $needsDownload = $true
-    if ($installedVersion -and $latestVersion) {
-        if ($installedVersion.TrimStart('v', 'V') -eq $latestVersion.TrimStart('v', 'V')) {
+    if ($installedVersionNum -and $latestVersionNum) {
+        if ($installedVersionNum -eq $latestVersionNum) {
             $needsDownload = $false
-            Write-Info "Already on the latest version ($installedVersion) - skipping the download."
+            Write-Info "Already on the latest version ($installedVersionNum) - skipping the download."
         }
     }
 
