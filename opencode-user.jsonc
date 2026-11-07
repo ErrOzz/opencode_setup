@@ -83,8 +83,12 @@
         },
         "openai/gpt-6.1-terra": {
           // image input is assumed from the GPT-6 family, not verified
+          // the "pro" variant sends reasoning.mode = "pro": same per-token price, more tokens per request
           "name": "GPT-6.1 Terra · 105/524 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
+          "capabilities": {
+            "tools": true, "input": ["text", "image", "pdf"], "output": ["text"],
+            "reasoning": { "supported": true, "effort": ["low", "medium", "high"] }
+          },
           "limit": { "context": 1050000, "output": 32000 },
           "variants": [
             { "id": "pro", "body": { "reasoning": { "mode": "pro" } } }
@@ -125,7 +129,10 @@
         },
         "qwen/qwen3-coder-next": {
           "name": "Qwen3 Coder Next · 13/84 ₽",
-          "capabilities": { "tools": true, "input": ["text", "pdf"], "output": ["text"] },
+          "capabilities": {
+            "tools": true, "input": ["text", "pdf"], "output": ["text"],
+            "reasoning": { "supported": false }
+          },
           "limit": { "context": 262144, "output": 32000 }
         },
 
