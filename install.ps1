@@ -153,28 +153,63 @@ function Get-FileWithProgress {
 try {
     Write-Host '=== OpenCode CLI install / update ===' -ForegroundColor Cyan
 
-    # 1. Stop a running OpenCode so the binary can be replaced
-    $running = Get-Process -Name 'opencode' -ErrorAction SilentlyContinue
-    if ($running) {
-        Write-Warn 'OpenCode is running. Stopping it for the update (unsaved sessions will be closed)...'
-        $running | Stop-Process -Force
-        Start-Sleep -Seconds 1
-    }
-
-    # 2. Download and unpack the standalone binary (per-user)
-    $binDir = Join-Path $env:LOCALAPPDATA 'Programs\opencode\bin'
+    # 1-2. Check the installed version against the latest release, and only
+    # stop the running process / download+unpack when an update is actually
+    # needed - skipping this when already current avoids closing a running
+    # session for nothing.
+    $binDir       = Join-Path $env:LOCALAPPDATA 'Programs\opencode\bin'
+    $installedExe = Join-Path $binDir 'opencode.exe'
     New-Item -ItemType Directory -Force -Path $binDir | Out-Null
 
-    $zipPath = Join-Path $env:TEMP "opencode-latest-$PID.zip"
-    try {
-        Write-Step 'Downloading the latest OpenCode CLI...'
-        Get-FileWithProgress -Label 'CLI' -OutFile $zipPath `
-            -Uri 'https://opencode.ai/update/api/latest/cli/opencode/opencode-windows-x64.zip'
-        Write-Step "Extracting to $binDir ..."
-        Expand-Archive -LiteralPath $zipPath -DestinationPath $binDir -Force
+    $installedVersion = $null
+    if (Test-Path -LiteralPath $installedExe) {
+        try {
+            $installedVersion = (& $installedExe --version 2>$null | Select-Object -First 1).ToString().Trim()
+        }
+        catch {
+            $installedVersion = $null
+        }
     }
-    finally {
-        Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+
+    # Same API shape used by `opencode upgrade` itself, without the channel's
+    # filename suffix - confirmed for the npm distribution; not independently
+    # verified here for this one, hence the fallback below on any failure.
+    $latestVersion = $null
+    try {
+        $verInfo = Invoke-RestMethod -UseBasicParsing -Uri 'https://opencode.ai/update/api/latest/cli/opencode'
+        if ($verInfo.version) { $latestVersion = [string]$verInfo.version }
+    }
+    catch {
+        Write-Info 'Could not check the latest version online - downloading to be safe.'
+    }
+
+    $needsDownload = $true
+    if ($installedVersion -and $latestVersion) {
+        if ($installedVersion.TrimStart('v', 'V') -eq $latestVersion.TrimStart('v', 'V')) {
+            $needsDownload = $false
+            Write-Info "Already on the latest version ($installedVersion) - skipping the download."
+        }
+    }
+
+    if ($needsDownload) {
+        $running = Get-Process -Name 'opencode' -ErrorAction SilentlyContinue
+        if ($running) {
+            Write-Warn 'OpenCode is running. Stopping it for the update (unsaved sessions will be closed)...'
+            $running | Stop-Process -Force
+            Start-Sleep -Seconds 1
+        }
+
+        $zipPath = Join-Path $env:TEMP "opencode-latest-$PID.zip"
+        try {
+            Write-Step 'Downloading the latest OpenCode CLI...'
+            Get-FileWithProgress -Label 'CLI' -OutFile $zipPath `
+                -Uri 'https://opencode.ai/update/api/latest/cli/opencode/opencode-windows-x64.zip'
+            Write-Step "Extracting to $binDir ..."
+            Expand-Archive -LiteralPath $zipPath -DestinationPath $binDir -Force
+        }
+        finally {
+            Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+        }
     }
 
     # 3. User PATH (read raw so %VARS% in existing entries are preserved)
