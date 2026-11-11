@@ -8,6 +8,9 @@
     - User config: %USERPROFILE%\.config\opencode\opencode.jsonc
       Created if missing. With -UpdateConfig it is overwritten (a timestamped
       .bak copy is kept).
+    - Global instructions: %USERPROFILE%\.config\opencode\AGENTS.md
+      Created if missing. With -UpdateConfig it is overwritten (a timestamped
+      .bak copy is kept).
     - System policy: %ProgramData%\opencode\opencode.json
       The only step that needs admin rights. A UAC prompt appears ONLY when
       this file is missing/differs from the repository version, OR the local
@@ -32,10 +35,11 @@
 
 .PARAMETER BaseUrl
     Raw URL prefix of the repository folder that holds install.ps1,
-    opencode-system.jsonc and opencode-user.jsonc. Pin it to a tag or commit.
+    opencode-system.jsonc, opencode-user.jsonc and AGENTS.md. Pin it to a tag
+    or commit.
 
 .PARAMETER UpdateConfig
-    Overwrite the existing user config (with a backup).
+    Overwrite the existing user config and global instructions (with backups).
 
 .PARAMETER SkipSystemPolicy
     Do not touch %ProgramData%\opencode (no UAC prompt).
@@ -248,6 +252,21 @@ try {
     }
     else {
         Write-Info 'User config already exists - left untouched (use -UpdateConfig to replace it).'
+    }
+
+    $agentsPath = Join-Path $userConfigDir 'AGENTS.md'
+    if (-not (Test-Path -LiteralPath $agentsPath)) {
+        Write-Step 'Global AGENTS.md not found. Creating it...'
+        Get-RepoFile 'AGENTS.md' $agentsPath
+    }
+    elseif ($UpdateConfig) {
+        $backup = "$agentsPath.$(Get-Date -Format 'yyyyMMdd-HHmmss').bak"
+        Write-Step "Updating global AGENTS.md (backup: $backup)..."
+        Copy-Item -LiteralPath $agentsPath -Destination $backup -Force
+        Get-RepoFile 'AGENTS.md' $agentsPath
+    }
+    else {
+        Write-Info 'Global AGENTS.md already exists - left untouched (use -UpdateConfig to replace it).'
     }
 
     # 5. System policy in %ProgramData% (needs admin, only when it changed)
