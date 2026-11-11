@@ -26,9 +26,14 @@
   "permissions": [
     // Shell commands: ask, except safe read-only git inspection.
     { "action": "shell", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "git show *", "effect": "allow" },
+    { "action": "shell", "resource": "git rev-parse *", "effect": "allow" },
     { "action": "shell", "resource": "git status *", "effect": "allow" },
     { "action": "shell", "resource": "git diff *", "effect": "allow" },
     { "action": "shell", "resource": "git log *", "effect": "allow" },
+    { "action": "shell", "resource": "Get-ChildItem *", "effect": "allow" },
+    { "action": "shell", "resource": "ls *", "effect": "allow" },
+    { "action": "shell", "resource": "python --version", "effect": "allow" },
 
     // Leaving the project folder: ask.
     { "action": "external_directory", "resource": "*", "effect": "ask" },
