@@ -108,14 +108,20 @@
           ]
         },
         // ---------- Google ----------
-        "~google/gemini-pro-latest": {
+        "~google/gemini-4-carbon": {
           // the model also handles audio and video, but they are not enabled via this API
-          "name": "Gemini Pro latest (4 Argon) · 209/1047 ₽",
+          "name": "Gemini 4 Carbon · 214/1047 ₽",
+          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
+          "limit": { "context": 1048576, "output": 32000 }
+        },
+        "~google/gemini-4-argon": {
+          // the model also handles audio and video, but they are not enabled via this API
+          "name": "Gemini 4 Argon · 214/1047 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1048576, "output": 32000 }
         },
         "~google/gemini-flash-latest": {
-          "name": "Gemini Flash latest · 79/393 ₽",
+          "name": "Gemini Flash latest · 80/402 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1048576, "output": 32000 }
         },
