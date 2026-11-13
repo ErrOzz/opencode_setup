@@ -66,6 +66,8 @@
     // OpenCode's own data: stored keys, legacy auth.json, service config.
     // Cross-check these paths with `opencode debug paths`.
     { "action": "tool.use", "resource": "read:*/.local/share/opencode/*", "effect": "deny" },
+    { "action": "tool.use", "resource": "edit:*/.local/share/opencode/*", "effect": "deny" },
+    { "action": "tool.use", "resource": "read:*/.local/share/opencode/tool-output/*", "effect": "allow" },
     { "action": "tool.use", "resource": "read:*/.config/opencode/service.json", "effect": "deny" }
   ]
 }
