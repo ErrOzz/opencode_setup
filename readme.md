@@ -32,7 +32,7 @@ When run from a checkout, the installer uses the files beside `install.ps1`. Whe
 | User configuration | `%USERPROFILE%\.config\opencode\opencode.jsonc` | Created from `opencode-user.jsonc` if missing. |
 | Global instructions | `%USERPROFILE%\.config\opencode\AGENTS.md` | Created from this repository's `AGENTS.md` if missing. |
 | Managed system policy | `%ProgramData%\opencode\opencode.json` | Deployed from `opencode-system.jsonc`; updated only when missing or changed. |
-| Local policy additions | `%ProgramData%\opencode\opencode.jsonc` | Created as a template if missing and preserved on subsequent runs. Edit it with administrator rights to add machine-specific exceptions. |
+| Local policy additions | `%ProgramData%\opencode\opencode.jsonc` | Created from `opencode-system-local.jsonc` if missing and preserved on subsequent runs. The template allows access to the installing user's `%TEMP%\opencode` directory. Edit the deployed file with administrator rights for machine-specific changes. |
 
 The installer asks for `ROUTERAI_API_KEY` only when it is not already set. The key is read from the environment and is not stored in the user configuration file.
 

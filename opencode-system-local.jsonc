@@ -1,0 +1,14 @@
+{
+  // Local additions to the managed system policy. The installer copies this
+  // template only when %ProgramData%\opencode\opencode.jsonc does not exist;
+  // later edits to that machine-specific file are preserved.
+  //
+  // The installer replaces __OPENCODE_TEMP_DIR__ with the installing user's
+  // Temp\opencode directory. These rules reduce prompts for OpenCode's own
+  // temporary files; they do not make other locations accessible.
+  "permissions": [
+    { "action": "external_directory", "resource": "__OPENCODE_TEMP_DIR__/*", "effect": "allow" },
+    { "action": "read", "resource": "__OPENCODE_TEMP_DIR__/*", "effect": "allow" },
+    { "action": "edit", "resource": "__OPENCODE_TEMP_DIR__/*", "effect": "allow" }
+  ]
+}

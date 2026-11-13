@@ -18,9 +18,9 @@
       ordinary users (and agents running as them) can read the policy but
       not change it.
     - Local policy additions: %ProgramData%\opencode\opencode.jsonc
-      Created once as an empty template; this script NEVER overwrites it
-      again. OpenCode merges it with opencode.json automatically (same
-      folder) and loads it LAST, so a rule added here (hand-edited, admin
+      Created once from opencode-system-local.jsonc; this script NEVER
+      overwrites it again. OpenCode merges it with opencode.json automatically
+      (same folder) and loads it LAST, so a rule added here (hand-edited, admin
       rights required) can override a broader rule from the base - e.g.
       allow a specific machine-local path the base only asks about.
       Adding the same rule to opencode.json instead would NOT override
@@ -35,8 +35,8 @@
 
 .PARAMETER BaseUrl
     Raw URL prefix of the repository folder that holds install.ps1,
-    opencode-system.jsonc, opencode-user.jsonc and AGENTS.md. Pin it to a tag
-    or commit.
+    opencode-system.jsonc, opencode-system-local.jsonc, opencode-user.jsonc
+    and AGENTS.md. Pin it to a tag or commit.
 
 .PARAMETER UpdateConfig
     Overwrite the existing user config and global instructions (with backups).
@@ -323,29 +323,33 @@ try {
                 $fetch = "Invoke-WebRequest -UseBasicParsing -Uri '$BaseUrl/$policyName' -OutFile '$policyDest'"
             }
 
-            # Only written if opencode.jsonc does not already exist - never overwritten afterwards.
-            $localTemplate = @'
-{
-  // Local additions/exceptions to the managed OpenCode policy (this machine
-  // only). NEVER touched by install.ps1 after it is first created - edit it
-  // by hand (admin rights required, same as this whole folder).
-  //
-  // OpenCode merges this file with opencode.json in this same folder, and
-  // loads opencode.jsonc (this file) LAST. For "permissions"/"policies" the
-  // LAST matching rule in the combined list wins, so a rule placed here can
-  // override a broader one from the base (e.g. turn its catch-all "ask"
-  // into "allow" for one specific path) - adding a rule to the base file
-  // instead would NOT be able to do that, since the base loads first.
-  // Verify the effective result anytime with: opencode debug config
-  //
-  // Example - allow a shared folder without being asked every time:
-  // "permissions": [
-  //   { "action": "external_directory", "resource": "D:/SharedCAD/*", "effect": "allow" },
-  //   { "action": "read", "resource": "D:/SharedCAD/*", "effect": "allow" }
-  // ]
+            # The repository template is copied only on first creation. Resolve
+            # its Temp placeholder for the user who launched the installer.
+            $localTemplateName = 'opencode-system-local.jsonc'
+            $localTemplateSource = Get-LocalRepoFile $localTemplateName
+            $encodedTempPath = [Convert]::ToBase64String(
+                [Text.Encoding]::UTF8.GetBytes((Join-Path $env:TEMP 'opencode').Replace('\', '/')))
+            if ($localTemplateSource) {
+                $encodedSourcePath = [Convert]::ToBase64String(
+                    [Text.Encoding]::Unicode.GetBytes($localTemplateSource))
+                $localTemplateLoad = @"
+`$sourcePath = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('$encodedSourcePath'))
+`$localTemplate = [IO.File]::ReadAllText(`$sourcePath)
+"@
+            }
+            else {
+                $localTemplateTemp = Join-Path $policyDir ".opencode-system-local-$PID.jsonc"
+                $localTemplateLoad = @"
+`$templatePath = '$localTemplateTemp'
+try {
+    Invoke-WebRequest -UseBasicParsing -Uri '$BaseUrl/$localTemplateName' -OutFile `$templatePath
+    `$localTemplate = [IO.File]::ReadAllText(`$templatePath)
 }
-'@
-            $encodedTemplate = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($localTemplate))
+finally {
+    Remove-Item -LiteralPath `$templatePath -Force -ErrorAction SilentlyContinue
+}
+"@
+            }
 
             $adminCmd = @"
 `$ErrorActionPreference = 'Stop'
@@ -356,7 +360,11 @@ icacls '$policyDir' /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544
 if (`$LASTEXITCODE -ne 0) { throw 'icacls failed' }
 $fetch
 if (-not (Test-Path -LiteralPath '$localPolicy')) {
-    [IO.File]::WriteAllText('$localPolicy', [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$encodedTemplate')))
+    $localTemplateLoad
+    `$tempPath = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$encodedTempPath'))
+    if (-not `$localTemplate.Contains('__OPENCODE_TEMP_DIR__')) { throw 'The local policy template is missing its Temp path placeholder.' }
+    `$localTemplate = `$localTemplate.Replace('__OPENCODE_TEMP_DIR__', `$tempPath)
+    [IO.File]::WriteAllText('$localPolicy', `$localTemplate, [Text.Encoding]::UTF8)
 }
 "@
 
