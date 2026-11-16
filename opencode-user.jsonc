@@ -120,6 +120,12 @@
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1048576, "output": 32000 }
         },
+        "~google/gemini-4-hydrogen": {
+          // the model also handles audio and video, but they are not enabled via this API
+          "name": "Gemini 4 Hydrogen · 160/800 ₽",
+          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
+          "limit": { "context": 1048576, "output": 32000 }
+        },
         "~google/gemini-flash-latest": {
           "name": "Gemini Flash latest · 80/402 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
@@ -127,9 +133,9 @@
         },
 
         // ---------- Qwen ----------
-        "qwen/qwen3.8-max-0902": {
+        "qwen/qwen4-max": {
           // pinned version, Qwen has no "latest" alias
-          "name": "Qwen3.8 Max 0902 · 209/628 ₽",
+          "name": "Qwen4 Max · 150/452 ₽",
           "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": { "context": 1000000, "output": 32000 }
         },
