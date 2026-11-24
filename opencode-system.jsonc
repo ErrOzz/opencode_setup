@@ -12,7 +12,7 @@
 // This managed layer has the highest priority: project-level config cannot
 // override it, and the agent cannot rewrite it without elevated rights.
 // Provider and model settings live in the global config
-// (~\.config\opencode\opencode.jsonc) - keep permissions/policies here
+// (~\.config\opencode\opencode.json) - keep permissions/policies here
 // (and in the local additions file), do not duplicate them elsewhere.
 //
 // permissions: rules that ask for confirmation. The LAST matching rule in

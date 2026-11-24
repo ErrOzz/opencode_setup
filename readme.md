@@ -29,7 +29,7 @@ When run from a checkout, the installer uses the files beside `install.ps1`. Whe
 | Component | Destination | Behavior |
 | --- | --- | --- |
 | OpenCode CLI | `%LOCALAPPDATA%\Programs\opencode\bin` | Installs or updates the latest Windows x64 CLI and adds its folder to the user `PATH`. |
-| User configuration | `%USERPROFILE%\.config\opencode\opencode.jsonc` | Created from `opencode-user.jsonc` if missing. |
+| User configuration | `%USERPROFILE%\.config\opencode\opencode.json` | Created from `opencode-user.jsonc` if missing. |
 | Global instructions | `%USERPROFILE%\.config\opencode\AGENTS.md` | Created from this repository's `AGENTS.md` if missing. |
 | Managed system policy | `%ProgramData%\opencode\opencode.json` | Deployed from `opencode-system.jsonc`; updated only when missing or changed. |
 | Local policy additions | `%ProgramData%\opencode\opencode.jsonc` | Created from `opencode-system-local.jsonc` if missing and preserved on subsequent runs. The template allows access to the installing user's `%TEMP%\opencode` directory. Edit the deployed file with administrator rights for machine-specific changes. |

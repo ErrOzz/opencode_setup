@@ -5,7 +5,7 @@
 .DESCRIPTION
     - Binary + PATH: per-user, no admin rights needed
       (%LOCALAPPDATA%\Programs\opencode\bin, User PATH).
-    - User config: %USERPROFILE%\.config\opencode\opencode.jsonc
+    - User config: %USERPROFILE%\.config\opencode\opencode.json
       Created if missing. With -UpdateConfig it is overwritten (a timestamped
       .bak copy is kept).
     - Global instructions: %USERPROFILE%\.config\opencode\AGENTS.md
@@ -237,7 +237,7 @@ try {
 
     # 4. User config (provider + models)
     $userConfigDir  = Join-Path $env:USERPROFILE '.config\opencode'
-    $userConfigPath = Join-Path $userConfigDir 'opencode.jsonc'
+    $userConfigPath = Join-Path $userConfigDir 'opencode.json'
     New-Item -ItemType Directory -Force -Path $userConfigDir | Out-Null
 
     if (-not (Test-Path -LiteralPath $userConfigPath)) {

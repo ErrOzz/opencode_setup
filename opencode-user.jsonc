@@ -1,5 +1,5 @@
 // OpenCode 2.x: GLOBAL user config with the RouterAI provider, models and custom agents.
-// Location: %USERPROFILE%\.config\opencode\opencode.jsonc (the file is named opencode.jsonc there).
+// Location: %USERPROFILE%\.config\opencode\opencode.json (the file is named opencode.json there).
 // Security rules (permissions, policies) live in the system-wide file
 // %ProgramData%\opencode\opencode.jsonc; do not duplicate them here.
 //

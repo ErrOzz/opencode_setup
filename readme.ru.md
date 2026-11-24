@@ -29,7 +29,7 @@ irm https://raw.githubusercontent.com/ErrOzz/opencode_setup/refs/heads/main/inst
 | Компонент | Расположение | Поведение |
 | --- | --- | --- |
 | OpenCode CLI | `%LOCALAPPDATA%\Programs\opencode\bin` | Устанавливает или обновляет последнюю версию CLI для Windows x64 и добавляет папку в пользовательский `PATH`. |
-| Пользовательская конфигурация | `%USERPROFILE%\.config\opencode\opencode.jsonc` | Создаётся из `opencode-user.jsonc`, если файла ещё нет. |
+| Пользовательская конфигурация | `%USERPROFILE%\.config\opencode\opencode.json` | Создаётся из `opencode-user.jsonc`, если файла ещё нет. |
 | Глобальные инструкции | `%USERPROFILE%\.config\opencode\AGENTS.md` | Создаются из `AGENTS.md` репозитория, если файла ещё нет. |
 | Управляемая системная политика | `%ProgramData%\opencode\opencode.json` | Устанавливается из `opencode-system.jsonc`; обновляется, только если файл отсутствует или отличается. |
 | Локальные дополнения политики | `%ProgramData%\opencode\opencode.jsonc` | Создаются из `opencode-system-local.jsonc`, если файла ещё нет, и сохраняются при последующих запусках. Шаблон разрешает доступ к папке `%TEMP%\opencode` пользователя, запустившего установщик. Для машинных изменений редактируйте установленный файл с правами администратора. |
