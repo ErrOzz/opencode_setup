@@ -6,11 +6,14 @@
     - Binary + PATH: per-user, no admin rights needed
       (%LOCALAPPDATA%\Programs\opencode\bin, User PATH).
     - User config: %USERPROFILE%\.config\opencode\opencode.json
-      Created if missing. With -UpdateConfig it is overwritten (a timestamped
-      .bak copy is kept).
+      Created from the template only if neither opencode.json nor opencode.jsonc
+      exists; never overwritten (OpenCode and its desktop app write into it, and
+      models are managed by the routerai-models skill).
     - Global instructions: %USERPROFILE%\.config\opencode\AGENTS.md
       Created if missing. With -UpdateConfig it is overwritten (a timestamped
       .bak copy is kept).
+    - Skills: %USERPROFILE%\.config\opencode\skills\routerai-models
+      Copied from the repository on every run.
     - System policy: %ProgramData%\opencode\opencode.json
       The only step that needs admin rights. A UAC prompt appears ONLY when
       this file is missing/differs from the repository version, OR the local
@@ -26,8 +29,8 @@
       Adding the same rule to opencode.json instead would NOT override
       anything, since that file loads first. Verify the effective result
       anytime with `opencode debug config`.
-    - API key: ROUTERAI_API_KEY is requested only if it is not set yet
-      (checked in Process, User and Machine scopes).
+    - API key: stored by OpenCode itself. If no saved RouterAI account exists,
+      the script runs `opencode auth login routerai --method key` (interactive).
 
     Works on Windows PowerShell 5.1 and PowerShell 7+.
     Config files are taken from the folder next to this script if it is run
@@ -39,7 +42,7 @@
     and AGENTS.md. Pin it to a tag or commit.
 
 .PARAMETER UpdateConfig
-    Overwrite the existing user config and global instructions (with backups).
+    Overwrite the existing global instructions (AGENTS.md), keeping a backup.
 
 .PARAMETER SkipSystemPolicy
     Do not touch %ProgramData%\opencode (no UAC prompt).
@@ -235,23 +238,23 @@ try {
     }
     if (($env:Path -split ';') -notcontains $binDir) { $env:Path += ";$binDir" }
 
-    # 4. User config (provider + models)
-    $userConfigDir  = Join-Path $env:USERPROFILE '.config\opencode'
-    $userConfigPath = Join-Path $userConfigDir 'opencode.json'
+    # 4. User config (provider skeleton; models are managed by the routerai-models skill)
+    $userConfigDir = Join-Path $env:USERPROFILE '.config\opencode'
     New-Item -ItemType Directory -Force -Path $userConfigDir | Out-Null
 
-    if (-not (Test-Path -LiteralPath $userConfigPath)) {
-        Write-Step 'User config not found. Creating it from the template...'
-        Get-RepoFile 'opencode-user.jsonc' $userConfigPath
-    }
-    elseif ($UpdateConfig) {
-        $backup = "$userConfigPath.$(Get-Date -Format 'yyyyMMdd-HHmmss').bak"
-        Write-Step "Updating user config (backup: $backup)..."
-        Copy-Item -LiteralPath $userConfigPath -Destination $backup -Force
-        Get-RepoFile 'opencode-user.jsonc' $userConfigPath
+    # OpenCode and its desktop app write into whichever of these files already exists,
+    # so never create a second one next to it.
+    $existingConfig = @('opencode.json', 'opencode.jsonc') |
+        ForEach-Object { Join-Path $userConfigDir $_ } |
+        Where-Object { Test-Path -LiteralPath $_ } |
+        Select-Object -First 1
+
+    if ($existingConfig) {
+        Write-Info "User config already exists ($existingConfig) - left untouched. Delete it to get the template again."
     }
     else {
-        Write-Info 'User config already exists - left untouched (use -UpdateConfig to replace it).'
+        Write-Step 'User config not found. Creating it from the template...'
+        Get-RepoFile 'opencode-user.jsonc' (Join-Path $userConfigDir 'opencode.json')
     }
 
     $agentsPath = Join-Path $userConfigDir 'AGENTS.md'
@@ -268,6 +271,18 @@ try {
     else {
         Write-Info 'Global AGENTS.md already exists - left untouched (use -UpdateConfig to replace it).'
     }
+
+    # 4b. Skills (repo-managed, overwritten on every run)
+    $skillFiles = @(
+        'skills/routerai-models/SKILL.md',
+        'skills/routerai-models/scripts/routerai.py'
+    )
+    foreach ($rel in $skillFiles) {
+        $dest = Join-Path $userConfigDir ($rel.Replace('/', '\'))
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dest) | Out-Null
+        Get-RepoFile $rel $dest
+    }
+    Write-Info 'Skills installed: routerai-models'
 
     # 5. System policy in %ProgramData% (needs admin, only when it changed)
     if ($SkipSystemPolicy) {
@@ -393,30 +408,35 @@ if (-not (Test-Path -LiteralPath '$localPolicy')) {
         }
     }
 
-    # 6. API key: ask only if it is not set anywhere
-    $keyName  = 'ROUTERAI_API_KEY'
-    $keyScope = $null
-    foreach ($scope in 'Process', 'User', 'Machine') {
-        if (-not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($keyName, $scope))) {
-            $keyScope = $scope
-            break
+    # 6. API key: stored by OpenCode itself (saved account), not in an environment variable
+    $providerId = 'routerai'
+    $exe = Join-Path $binDir 'opencode.exe'
+    $hasKey = $false
+    try {
+        $authList = (& $exe auth list 2>$null) -join "`n"
+        $hasKey = $authList -match "(?i)\b$providerId\b"
+    }
+    catch {
+        Write-Info 'Could not read the list of saved accounts.'
+    }
+
+    if ($hasKey) {
+        Write-Info "A saved $providerId account was found - not asking again."
+    }
+    else {
+        Write-Warn "No saved $providerId account found."
+        $answer = Read-Host 'Press Enter to enter your RouterAI API key now (type n to do it later)'
+        if ($answer -notmatch '^(n|no)$') {
+            & $exe auth login $providerId --method key
+            if ($LASTEXITCODE -ne 0) { Write-Warn 'The key was not saved.' }
+        }
+        else {
+            Write-Info "Later, run: opencode auth login $providerId --method key"
         }
     }
 
-    if ($keyScope) {
-        Write-Info "$keyName found in $keyScope scope - not asking again."
-    }
-    else {
-        Write-Warn "$keyName is not set."
-        $secure = Read-Host 'Enter your RouterAI API key (or press Enter to set it later)' -AsSecureString
-        if ($secure.Length -gt 0) {
-            $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
-            try   { $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr).Trim() }
-            finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
-            [Environment]::SetEnvironmentVariable($keyName, $plain, 'User')
-            Set-Item -Path "Env:$keyName" -Value $plain
-            Write-Step 'API key saved to your user environment variables.'
-        }
+    if ([Environment]::GetEnvironmentVariable('ROUTERAI_API_KEY', 'User')) {
+        Write-Info 'The old ROUTERAI_API_KEY user variable is no longer used; you can remove it.'
     }
 
     # 7. Verify
