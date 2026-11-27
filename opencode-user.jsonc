@@ -1,20 +1,11 @@
-// OpenCode 2.x: GLOBAL user config with the RouterAI provider, models and custom agents.
+// OpenCode 2.x: GLOBAL user config with the RouterAI provider skeleton and custom agents.
+// Models are managed by the routerai-models skill (add / update / remove).
 // Location: %USERPROFILE%\.config\opencode\opencode.json (the file is named opencode.json there).
 // Security rules (permissions, policies) live in the system-wide file
 // %ProgramData%\opencode\opencode.jsonc; do not duplicate them here.
 //
-// The API key is read from the ROUTERAI_API_KEY environment variable (it is not stored in this file).
-//
-// Prices in model names: RUB per 1M tokens, "input/output". Taken on 2026-11-03 from the
-// pricing field of the https://routerai.ru/api/v1/models response (value x 1,000,000).
-// Prices change: when updating, edit the names and this date.
-//
-// capabilities and limit are set explicitly: for models outside the OpenCode catalog
-// OpenCode would otherwise apply defaults (tools, text and image input, 200,000 context).
-// limit.context comes from the API response (context_length).
-// limit.output = 32000 is a conservative per-request cap, not a model limit.
-// pdf is listed in input for every model on purpose: RouterAI converts pdf to text
-// with another model when the target model has no native pdf support (checked).
+// The API key is a saved OpenCode account (opencode auth login routerai --method key);
+// it is not stored in this file.
 //
 // "~...-latest" aliases move to new model versions automatically. The version in
 // parentheses is the one current on the date above. For reproducibility you can
@@ -25,171 +16,11 @@
   "providers": {
     "routerai": {
       "name": "RouterAI",
-      "env": ["ROUTERAI_API_KEY"],
       "package": "@opencode/ai/providers/openai-compatible",
       "settings": {
         "baseURL": "https://routerai.ru/api/v1"
       },
-      "models": {
-
-        // ---------- Anthropic ----------
-        // compatibility.cacheFormat = "anthropic" enables request caching
-        // (cache_control) for Claude through the OpenAI-compatible gateway; reads from
-        // the cache are 10-40x cheaper than regular input. If requests to Claude start
-        // failing with a cache_control error, remove these lines.
-        "~anthropic/claude-fable-latest": {
-          // version not confirmed; image input is assumed from the model family
-          "name": "Claude Fable latest · 1204/6022 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1000000, "output": 32000 },
-          "compatibility": { "cacheFormat": "anthropic" }
-        },
-        "~anthropic/claude-opus-latest": {
-          "name": "Claude Opus latest (5.5) · 419/2095 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1000000, "output": 32000 },
-          "compatibility": { "cacheFormat": "anthropic" }
-        },
-        "~anthropic/claude-sonnet-latest": {
-          "name": "Claude Sonnet latest (5.5) · 209/1047 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1000000, "output": 32000 },
-          "compatibility": { "cacheFormat": "anthropic" }
-        },
-        "~anthropic/claude-haiku-latest": {
-          "name": "Claude Haiku latest (5.5) · 10/52 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1000000, "output": 32000 },
-          "compatibility": { "cacheFormat": "anthropic" }
-        },
-
-        // ---------- OpenAI ----------
-        "openai/gpt-6.2-astra": {
-          // image input is assumed from the GPT-6 family, not verified
-          "name": "GPT-6.2 Astra · 855/4275 ₽",
-          "capabilities": {
-            "tools": true, "input": ["text", "image", "pdf"], "output": ["text"],
-            "reasoning": { "supported": true, "effort": ["low", "medium", "high"] }
-          },
-          "limit": { "context": 1050000, "output": 32000 }
-        },
-        "openai/gpt-6.2-sol": {
-          "name": "GPT-6.2 Sol · 213/1068 ₽",
-          "capabilities": {
-            "tools": true, "input": ["text", "image", "pdf"], "output": ["text"],
-            "reasoning": { "supported": true, "effort": ["low", "medium", "high"] }
-          },
-          "limit": { "context": 1050000, "output": 32000 }
-        },
-        "~openai/gpt-mini-latest": {
-          // image input is not verified
-          "name": "GPT mini latest · 79/471 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 400000, "output": 32000 }
-        },
-        "openai/gpt-6.1-terra": {
-          // image input is assumed from the GPT-6 family, not verified
-          // the "pro" variant sends reasoning.mode = "pro": same per-token price, more tokens per request
-          "name": "GPT-6.1 Terra · 105/524 ₽",
-          "capabilities": {
-            "tools": true, "input": ["text", "image", "pdf"], "output": ["text"],
-            "reasoning": { "supported": true, "effort": ["low", "medium", "high"] }
-          },
-          "limit": { "context": 1050000, "output": 32000 },
-          "variants": [
-            { "id": "pro", "body": { "reasoning": { "mode": "pro" } } }
-          ]
-        },
-        "openai/gpt-6-luna": {
-          // image input is assumed from the GPT-6 family, not verified
-          // the "pro" variant sends reasoning.mode = "pro": same per-token price, more tokens per request
-          "name": "GPT-6 Luna · 11/53 ₽",
-          "capabilities": {
-            "tools": true, "input": ["text", "image", "pdf"], "output": ["text"],
-            "reasoning": { "supported": true, "effort": ["low", "medium", "high"] }
-          },
-          "limit": { "context": 1050000, "output": 32000 },
-          "variants": [
-            { "id": "pro", "body": { "reasoning": { "mode": "pro" } } }
-          ]
-        },
-        // ---------- Google ----------
-        "~google/gemini-4-carbon": {
-          // the model also handles audio and video, but they are not enabled via this API
-          "name": "Gemini 4 Carbon · 214/1047 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1048576, "output": 32000 }
-        },
-        "~google/gemini-4-argon": {
-          // the model also handles audio and video, but they are not enabled via this API
-          "name": "Gemini 4 Argon · 214/1047 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1048576, "output": 32000 }
-        },
-        "~google/gemini-4-hydrogen": {
-          // the model also handles audio and video, but they are not enabled via this API
-          "name": "Gemini 4 Hydrogen · 160/800 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1048576, "output": 32000 }
-        },
-        "~google/gemini-flash-latest": {
-          "name": "Gemini Flash latest · 80/402 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1048576, "output": 32000 }
-        },
-
-        // ---------- Qwen ----------
-        "qwen/qwen4-max": {
-          // pinned version, Qwen has no "latest" alias
-          "name": "Qwen4 Max · 150/452 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1000000, "output": 32000 }
-        },
-        "qwen/qwen3-coder-next": {
-          "name": "Qwen3 Coder Next · 13/84 ₽",
-          "capabilities": {
-            "tools": true, "input": ["text", "pdf"], "output": ["text"],
-            "reasoning": { "supported": false }
-          },
-          "limit": { "context": 262144, "output": 32000 }
-        },
-
-        // ---------- DeepSeek ----------
-        "~deepseek/deepseek-v4-pro-latest": {
-          // no image input
-          "name": "DeepSeek V4 Pro latest · 99/176 ₽",
-          "capabilities": { "tools": true, "input": ["text", "pdf"], "output": ["text"] },
-          "limit": { "context": 1048576, "output": 32000 }
-        },
-        "~deepseek/deepseek-v4-flash-latest": {
-          "name": "DeepSeek V4 Flash latest · 6/22 ₽",
-          "capabilities": { "tools": true, "input": ["text", "image", "pdf"], "output": ["text"] },
-          "limit": { "context": 1048576, "output": 32000 }
-        }
-      }
+            "models": {}
     }
   },
-
-  "agents": {
-    // Lightweight chat agent: no tools and a minimal system prompt, for discussions
-    // outside a project or while the project idea is still forming.
-    // Switch to it with Tab or /agents. Do not set it as default_agent, otherwise
-    // it would also become the default inside projects.
-    // For the smallest context, start OpenCode from an empty folder: project
-    // instructions (AGENTS.md) and skills are still added on top of "system".
-    "chat": {
-      "description": "Plain chat without project tools",
-      "mode": "primary",
-      "color": "info",
-      // Optional: pin a cheaper model for chat (provider ID / model key; adjust if needed).
-      // "model": "routerai/~anthropic/claude-haiku-latest",
-      "system": "You are a concise, direct assistant for open-ended discussion and brainstorming. No project files or tools are available. Reply in the user's language.",
-      "permissions": [
-        // Deny every action first; the last matching rule wins, so put exceptions below.
-        { "action": "*", "resource": "*", "effect": "deny" },
-        // Example exception (web search in chat):
-        { "action": "websearch", "resource": "*", "effect": "allow" }
-      ]
-    }
-  }
 }

@@ -33,6 +33,9 @@ EFFORT_LEVELS = ["low", "medium", "high"]
 PRO_SUFFIX = "-pro"
 # Part of the snippet that marks the variant; the API does not carry it
 PRO_VARIANT = '{ "id": "pro", "body": { "reasoning": { "mode": "pro" } } }'
+# Vendors whose models need compatibility.cacheFormat to enable request caching
+# through the OpenAI-compatible gateway (matched by the id prefix, "~" aliases included)
+CACHE_FORMAT_BY_VENDOR = {"anthropic": "anthropic"}
 MAX_ROWS = 40
 DOT = "\u00b7"  # middle dot
 RUBLE = "\u20bd"  # ruble sign
@@ -164,9 +167,18 @@ def new_snippet(model, models, output_limit, no_pro):
         lines.append(caps)
     lines.append("  },")
     limit = '  "limit": { "context": %d, "output": %d }' % (int(model.get("context_length") or 0), output_limit)
-    lines.append(limit + ("," if pro else ""))
+    # Optional blocks after "limit"; each block is a list of lines, commas are added between blocks
+    blocks = []
     if pro:
-        lines += ['  "variants": [', "    " + PRO_VARIANT, "  ]"]
+        blocks.append(['  "variants": [', "    " + PRO_VARIANT, "  ]"])
+    cache_format = CACHE_FORMAT_BY_VENDOR.get(model["id"].lstrip("~").split("/")[0])
+    if cache_format:
+        blocks.append(['  "compatibility": { "cacheFormat": %s }' % json_str(cache_format)])
+    lines.append(limit + ("," if blocks else ""))
+    for i, block in enumerate(blocks):
+        if i < len(blocks) - 1:
+            block[-1] += ","
+        lines += block
     lines.append("}")
 
     base = pro_base(model, models)

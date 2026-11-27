@@ -48,7 +48,7 @@ Use `search` first when the user gives only a rough name. Pick the exact `id` fr
 
 1. Read the `models` object and list the ids. Update the ones the user named, or all if they asked for all.
 2. Run `snippet` for those ids and compare with the current entries field by field.
-3. Update only these fields: `name` (short name and price), `capabilities.tools`, `capabilities.input`, `capabilities.output`, `capabilities.reasoning.supported`, `limit.context`.
+3. Update only these fields: `name` (short name and price), `capabilities.tools`, `capabilities.input`, `capabilities.output`, `capabilities.reasoning.supported`, `limit.context`, `compatibility.cacheFormat`. A missing `reasoning` block in the snippet means the same as `"supported": false` in an entry.
 4. Never change `limit.output`, `variants`, `capabilities.reasoning.effort` or any key the script does not produce. These are the user's choices: the API reports neither output limits nor effort levels.
 5. If a field differs and the entry has a comment that explains the difference (for example audio left out on purpose), keep the entry as is and mention it.
 6. If the snippet has a `pro` variant and the entry does not, do not add it silently. Ask first: it changes how the model behaves and what it costs.
@@ -62,7 +62,7 @@ Use `search` first when the user gives only a rough name. Pick the exact `id` fr
 
 ## Check the result
 
-Re-read the edited region and confirm the JSON still has balanced braces and correct commas. Run `opencode debug config` for a merge check only if the config holds no key (no `apiKey`, `{env:...}`, `{file:...}`); otherwise it may print resolved secrets, so ask the user to run it instead.
+Re-read the edited region and confirm the JSON still has balanced braces and correct commas. Run `opencode debug config` for a merge check only if the config holds no key (no `env` list, `apiKey`, `{env:...}`, `{file:...}`); otherwise it may print resolved secrets, so ask the user to run it instead.
 
 ## API key
 
@@ -72,11 +72,12 @@ OpenCode stores the key itself as a saved account (it is not in the config and n
 opencode auth login routerai --method key
 ```
 
-Use the provider id from the config if it is not `routerai`. To check that a key is saved, ask the user to run `opencode auth list`. If the config contains a plain-text key or an `{env:...}` reference, say so without printing the value and suggest moving it to the command above.
+Use the provider id from the config if it is not `routerai`. To check that a key is saved, ask the user to run `opencode auth list`. If the provider block has an `env` list, a plain-text key or an `{env:...}` reference, say so without printing the value and suggest moving it to the command above.
 
 ## What the script cannot know
 
 - The output limit defaults to 32000; the user adjusts it per model.
 - Reasoning effort levels are assumed to be low, medium and high when the API lists `reasoning_effort`.
 - The `pro` variant is added only when the API list has a model with the same id plus `-pro`. The variant body is fixed in the script (`reasoning.mode = "pro"`). Use `show <id>-pro` to confirm that its description says it is the same model with reasoning pro.
-- `file` is added to the input types of every model on purpose, even when the API does not list it.
+- `file` is added to the input types of every model on purpose, even when the API does not list it. Older entries may still say `pdf`: the first update turns it into `file`, which is intended.
+- Models of the `anthropic` vendor get `compatibility.cacheFormat = "anthropic"` (request caching through the gateway). If Claude requests start failing with a cache_control error, remove that line from the entry.
