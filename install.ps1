@@ -5,7 +5,7 @@
 .DESCRIPTION
     - Binary + PATH: per-user, no admin rights needed
       (%LOCALAPPDATA%\Programs\opencode\bin, User PATH).
-    - User config: %USERPROFILE%\.config\opencode\opencode.json
+    - User config: %USERPROFILE%\.config\opencode\opencode.jsonc
       Created from the template only if neither opencode.json nor opencode.jsonc
       exists; never overwritten (OpenCode and its desktop app write into it, and
       models are managed by the routerai-models skill).
@@ -13,7 +13,8 @@
       Created if missing. With -UpdateConfig it is overwritten (a timestamped
       .bak copy is kept).
     - Skills: %USERPROFILE%\.config\opencode\skills\routerai-models
-      Copied from the repository on every run.
+      A separate git repository ($SkillRepoUrl): cloned if missing, updated with
+      `git pull --ff-only` otherwise. Skipped if git is not installed.
     - System policy: %ProgramData%\opencode\opencode.json
       The only step that needs admin rights. A UAC prompt appears ONLY when
       this file is missing/differs from the repository version, OR the local
@@ -41,6 +42,9 @@
     opencode-system.jsonc, opencode-system-local.jsonc, opencode-user.jsonc
     and AGENTS.md. Pin it to a tag or commit.
 
+.PARAMETER SkillRepoUrl
+    Git URL of the routerai-models skill repository.
+
 .PARAMETER UpdateConfig
     Overwrite the existing global instructions (AGENTS.md), keeping a backup.
 
@@ -55,6 +59,7 @@
 #>
 param(
     [string]$BaseUrl = 'https://raw.githubusercontent.com/ErrOzz/opencode_setup/refs/heads/main',
+    [string]$SkillRepoUrl = 'https://github.com/ErrOzz/routerai-models.git',
     [switch]$UpdateConfig,
     [switch]$SkipSystemPolicy
 )
@@ -254,7 +259,7 @@ try {
     }
     else {
         Write-Step 'User config not found. Creating it from the template...'
-        Get-RepoFile 'opencode-user.jsonc' (Join-Path $userConfigDir 'opencode.json')
+        Get-RepoFile 'opencode-user.jsonc' (Join-Path $userConfigDir 'opencode.jsonc')
     }
 
     $agentsPath = Join-Path $userConfigDir 'AGENTS.md'
@@ -272,17 +277,38 @@ try {
         Write-Info 'Global AGENTS.md already exists - left untouched (use -UpdateConfig to replace it).'
     }
 
-    # 4b. Skills (repo-managed, overwritten on every run)
-    $skillFiles = @(
-        'skills/routerai-models/SKILL.md',
-        'skills/routerai-models/scripts/routerai.py'
-    )
-    foreach ($rel in $skillFiles) {
-        $dest = Join-Path $userConfigDir ($rel.Replace('/', '\'))
-        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dest) | Out-Null
-        Get-RepoFile $rel $dest
+    # 4b. routerai-models skill: a separate git repository in the global skills folder
+    function Invoke-Git {
+        # git writes progress to stderr; do not let -ErrorAction Stop turn that into an error
+        $prev = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            & git @args | Out-Host
+            return $LASTEXITCODE
+        }
+        finally { $ErrorActionPreference = $prev }
     }
-    Write-Info 'Skills installed: routerai-models'
+
+    $skillDir = Join-Path $userConfigDir 'skills\routerai-models'
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Warn 'git not found - the routerai-models skill was skipped.'
+    }
+    elseif (Test-Path -LiteralPath (Join-Path $skillDir '.git')) {
+        Write-Step 'Updating the routerai-models skill...'
+        if ((Invoke-Git -C $skillDir pull --ff-only) -ne 0) {
+            Write-Warn 'Skill update failed; the installed version was kept.'
+        }
+    }
+    elseif (Test-Path -LiteralPath $skillDir) {
+        Write-Warn "$skillDir exists but is not a git clone - left untouched."
+    }
+    else {
+        Write-Step 'Installing the routerai-models skill...'
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $skillDir) | Out-Null
+        if ((Invoke-Git clone $SkillRepoUrl $skillDir) -ne 0) {
+            Write-Warn 'Skill clone failed. Check -SkillRepoUrl and your connection.'
+        }
+    }
 
     # 5. System policy in %ProgramData% (needs admin, only when it changed)
     if ($SkipSystemPolicy) {
